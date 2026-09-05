@@ -45,6 +45,11 @@ public:
     virtual void end_frame() = 0;
 };
 
+// Backend factories stay separate from create_device() so each adapter can be
+// implemented/tested independently during the engine migration.
+std::unique_ptr<Device> create_null_device();
+std::unique_ptr<Device> create_sokol_device();
+
 std::unique_ptr<Device> create_device(const DeviceDesc& desc = {});
 
 } // namespace Nova::RHI
