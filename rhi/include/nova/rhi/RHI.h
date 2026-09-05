@@ -39,14 +39,15 @@ public:
 
     virtual Backend backend() const noexcept = 0;
     virtual std::string_view backend_name() const noexcept = 0;
-
     virtual std::unique_ptr<Texture> create_texture(const TextureDesc& desc) = 0;
     virtual void begin_frame() = 0;
     virtual void end_frame() = 0;
 };
 
-// Stable backend factories. Platform implementations live behind these
-// functions so Runtime never includes native graphics headers.
+// Platform policy remains in RHI rather than Runtime so applications can use
+// the same Runtime API on desktop, Android, Apple and WebAssembly.
+Backend default_backend() noexcept;
+
 std::unique_ptr<Device> create_null_device();
 std::unique_ptr<Device> create_sokol_device();
 std::unique_ptr<Device> create_vulkan_device(const DeviceDesc& desc);
