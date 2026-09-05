@@ -4,6 +4,8 @@
 #include <memory>
 #include <string_view>
 
+#include <nova/rhi/Resources.h>
+
 namespace Nova::RHI {
 
 enum class Backend : std::uint8_t {
@@ -40,7 +42,15 @@ public:
 
     virtual Backend backend() const noexcept = 0;
     virtual std::string_view backend_name() const noexcept = 0;
+
+    // Optional resource hooks. Backend adapters override these incrementally;
+    // the defaults keep older adapters source-compatible during migration.
+    virtual std::unique_ptr<Buffer> create_buffer(const BufferDesc&) { return nullptr; }
     virtual std::unique_ptr<Texture> create_texture(const TextureDesc& desc) = 0;
+    virtual std::unique_ptr<CommandBuffer> create_command_buffer() { return nullptr; }
+    virtual std::unique_ptr<Pipeline> create_pipeline() { return nullptr; }
+    virtual std::unique_ptr<Swapchain> create_swapchain(std::uint32_t, std::uint32_t) { return nullptr; }
+
     virtual void begin_frame() = 0;
     virtual void end_frame() = 0;
 };
