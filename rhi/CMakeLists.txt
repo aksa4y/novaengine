@@ -8,6 +8,7 @@ endif()
 add_library(nova-rhi STATIC
     src/NullRHI.cpp
     src/SokolRHI.cpp
+    src/NativeBackendStubs.cpp
     src/Capabilities.cpp
 )
 
@@ -24,6 +25,32 @@ target_compile_definitions(nova-rhi
     PUBLIC
         NOVA_RHI_ABI_VERSION=1
 )
+
+# Native SDK adapters are opt-in and platform-scoped. The portable target always
+# links NativeBackendStubs.cpp so a missing SDK produces an explicit nullptr
+# from the corresponding factory instead of a compile/link failure.
+option(NOVA_RHI_ENABLE_VULKAN "Enable the native Vulkan adapter" OFF)
+option(NOVA_RHI_ENABLE_D3D11 "Enable the native D3D11 adapter" OFF)
+option(NOVA_RHI_ENABLE_D3D12 "Enable the native D3D12 adapter" OFF)
+option(NOVA_RHI_ENABLE_METAL "Enable the native Metal adapter" OFF)
+option(NOVA_RHI_ENABLE_OPENGL "Enable the native OpenGL adapter" OFF)
+option(NOVA_RHI_ENABLE_WEBGPU "Enable the native WebGPU adapter" OFF)
+
+if(NOVA_RHI_ENABLE_VULKAN)
+    message(STATUS "Nova RHI: Vulkan adapter requested")
+endif()
+if(NOVA_RHI_ENABLE_D3D11 OR NOVA_RHI_ENABLE_D3D12)
+    message(STATUS "Nova RHI: Direct3D adapter requested")
+endif()
+if(NOVA_RHI_ENABLE_METAL)
+    message(STATUS "Nova RHI: Metal adapter requested")
+endif()
+if(NOVA_RHI_ENABLE_OPENGL)
+    message(STATUS "Nova RHI: OpenGL adapter requested")
+endif()
+if(NOVA_RHI_ENABLE_WEBGPU)
+    message(STATUS "Nova RHI: WebGPU adapter requested")
+endif()
 
 set_target_properties(nova-rhi PROPERTIES
     OUTPUT_NAME "nova-rhi"
