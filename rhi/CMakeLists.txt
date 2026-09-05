@@ -8,6 +8,7 @@ endif()
 add_library(nova-rhi STATIC
     src/NullRHI.cpp
     src/SokolRHI.cpp
+    src/Capabilities.cpp
 )
 
 add_library(Nova::RHI ALIAS nova-rhi)
@@ -18,6 +19,11 @@ target_include_directories(nova-rhi
 )
 
 target_compile_features(nova-rhi PUBLIC cxx_std_17)
+
+target_compile_definitions(nova-rhi
+    PUBLIC
+        NOVA_RHI_ABI_VERSION=1
+)
 
 set_target_properties(nova-rhi PROPERTIES
     OUTPUT_NAME "nova-rhi"
