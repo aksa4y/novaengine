@@ -24,6 +24,17 @@ std::unique_ptr<Device> create_null_device() {
 }
 
 std::unique_ptr<Device> create_device(const DeviceDesc& desc) {
+    if (desc.backend == Backend::Auto) {
+        const Backend preferred = default_backend();
+        if (preferred != Backend::Auto) {
+            auto device = create_device({preferred, desc.debug});
+            if (device) {
+                return device;
+            }
+        }
+        return create_sokol_device();
+    }
+
     switch (desc.backend) {
         case Backend::Null:    return create_null_device();
         case Backend::Sokol:   return create_sokol_device();
@@ -33,6 +44,7 @@ std::unique_ptr<Device> create_device(const DeviceDesc& desc) {
         case Backend::Metal:   return create_metal_device(desc);
         case Backend::OpenGL:  return create_opengl_device(desc);
         case Backend::WebGPU:  return create_webgpu_device(desc);
+        case Backend::Auto:    break;
     }
     return nullptr;
 }
