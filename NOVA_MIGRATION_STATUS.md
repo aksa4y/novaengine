@@ -6,9 +6,11 @@ Public dependency direction:
 
 `Nova::EditorCore -> Nova::Runtime -> Nova::RHI`
 
-The root build entry point is named `NovaEngine`. The original upstream build
-orchestration is preserved under `cmake/legacy/CMakeLists.txt` during the
-mechanical migration so the source graph is not lost.
+The root build entry point is `NovaEngine`. The original upstream CMake graph
+is preserved under `cmake/legacy/CMakeLists.txt` while the implementation is
+migrated into the Nova runtime tree.
 
-The repository rebrand is being performed outside third-party vendor trees.
-`libs/` remains excluded from project-owned identifier replacement.
+The project-owned rebrand is being applied outside third-party vendor trees;
+`libs/` is intentionally excluded from identifier replacement.
+
+Full native build verification is not claimed from this environment.
