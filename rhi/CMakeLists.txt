@@ -7,6 +7,7 @@ endif()
 
 add_library(nova-rhi STATIC
     src/NullRHI.cpp
+    src/SokolRHI.cpp
 )
 
 add_library(Nova::RHI ALIAS nova-rhi)
