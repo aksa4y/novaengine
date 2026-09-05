@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    project(NovaRHI LANGUAGES C CXX OBJCXX)
+    project(NovaRHI LANGUAGES C CXX)
     option(NOVA_RHI_BUILD_TESTS "Build the standalone Nova RHI smoke test" ON)
 endif()
 
@@ -12,7 +12,7 @@ option(NOVA_RHI_ENABLE_METAL "Enable the native Metal adapter" OFF)
 option(NOVA_RHI_ENABLE_OPENGL "Enable the native OpenGL adapter" OFF)
 option(NOVA_RHI_ENABLE_WEBGPU "Enable the native WebGPU adapter" OFF)
 
-add_library(nova-rhi STATIC
+set(NOVA_RHI_SOURCES
     src/NullRHI.cpp
     src/SokolRHI.cpp
     src/NativeBackendStubs.cpp
@@ -20,9 +20,17 @@ add_library(nova-rhi STATIC
     src/VulkanRHI.cpp
     src/D3D11RHI.cpp
     src/D3D12RHI.cpp
-    src/MetalRHI.mm
 )
 
+if(NOVA_RHI_ENABLE_METAL)
+    if(NOT APPLE)
+        message(FATAL_ERROR "NOVA_RHI_ENABLE_METAL requires an Apple platform")
+    endif()
+    enable_language(OBJCXX)
+    list(APPEND NOVA_RHI_SOURCES src/MetalRHI.mm)
+endif()
+
+add_library(nova-rhi STATIC ${NOVA_RHI_SOURCES})
 add_library(Nova::RHI ALIAS nova-rhi)
 
 target_include_directories(nova-rhi PUBLIC
@@ -55,9 +63,6 @@ if(NOVA_RHI_ENABLE_D3D12)
 endif()
 
 if(NOVA_RHI_ENABLE_METAL)
-    if(NOT APPLE)
-        message(FATAL_ERROR "NOVA_RHI_ENABLE_METAL requires an Apple platform")
-    endif()
     target_compile_definitions(nova-rhi PRIVATE NOVA_RHI_NATIVE_METAL=1)
     target_link_libraries(nova-rhi PRIVATE "-framework Metal")
 endif()
