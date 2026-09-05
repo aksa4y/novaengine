@@ -7,6 +7,7 @@
 namespace Nova::RHI {
 
 enum class Backend : std::uint8_t {
+    Auto,
     Null,
     Sokol,
     Vulkan,
@@ -18,7 +19,7 @@ enum class Backend : std::uint8_t {
 };
 
 struct DeviceDesc {
-    Backend backend = Backend::Null;
+    Backend backend = Backend::Auto;
     bool debug = false;
 };
 
@@ -44,8 +45,6 @@ public:
     virtual void end_frame() = 0;
 };
 
-// Platform policy remains in RHI rather than Runtime so applications can use
-// the same Runtime API on desktop, Android, Apple and WebAssembly.
 Backend default_backend() noexcept;
 
 std::unique_ptr<Device> create_null_device();
