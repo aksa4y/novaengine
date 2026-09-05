@@ -1,21 +1,20 @@
-// (c) Eduardo Doria
+// Nova Engine legacy export bridge.
 // SPDX-License-Identifier: MIT
+#pragma once
 
-#ifndef DORIAX_EXPORT_H
-#define DORIAX_EXPORT_H
+#include "NovaExport.h"
 
-#if defined(_MSC_VER)
-    #ifdef DORIAX_SHARED
-        #ifdef DORIAX_EXPORTS
-            #define DORIAX_API __declspec(dllexport)
-        #else
-            #define DORIAX_API __declspec(dllimport)
-        #endif
-    #else
-        #define DORIAX_API
-    #endif
-#else
-    #define DORIAX_API
+// The implementation is still compiled through the legacy compatibility
+// boundary. Keep these names as aliases so old translation units continue to
+// compile while all new public code uses NOVA_API / NOVA_SHARED.
+#if !defined(DORIAX_SHARED) && defined(NOVA_SHARED)
+    #define DORIAX_SHARED NOVA_SHARED
 #endif
 
-#endif // DORIAX_EXPORT_H
+#if !defined(DORIAX_EXPORTS) && defined(NOVA_EXPORTS)
+    #define DORIAX_EXPORTS NOVA_EXPORTS
+#endif
+
+#ifndef DORIAX_API
+    #define DORIAX_API NOVA_API
+#endif
