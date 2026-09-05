@@ -1,8 +1,8 @@
 # Nova Runtime boundary.
 #
-# The legacy engine target is kept as an implementation dependency during the
-# migration. New game-facing APIs live under runtime/include and link through
-# Nova::RHI instead of exposing editor implementation details.
+# Runtime is deliberately independent from the Editor and from the legacy
+# Doriax implementation target. Legacy sources may still be built by the root
+# project, but the new game-facing Runtime API is a clean Nova layer over RHI.
 
 add_library(nova-runtime STATIC
     src/Runtime.cpp
@@ -14,15 +14,9 @@ target_link_libraries(nova-runtime
         Nova::RHI
 )
 
-if(TARGET doriax)
-    target_link_libraries(nova-runtime PRIVATE doriax)
-endif()
-
 target_include_directories(nova-runtime
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/../engine
 )
 
 target_compile_features(nova-runtime PUBLIC cxx_std_17)
