@@ -4,3 +4,8 @@
 if(NOT TARGET doriax)
     include("${CMAKE_CURRENT_SOURCE_DIR}/../../engine/CMakeLists.txt")
 endif()
+
+# Public Nova names hide the legacy implementation target from new consumers.
+if(TARGET doriax AND NOT TARGET Nova::Engine)
+    add_library(Nova::Engine ALIAS doriax)
+endif()
