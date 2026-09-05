@@ -8,6 +8,18 @@ add_subdirectory(rhi)
 add_subdirectory(runtime)
 add_subdirectory(editor)
 
+# Nova public API smoke tests. These depend only on Nova Runtime/RHI.
+option(NOVA_BUILD_TESTS "Build Nova public API smoke tests" ON)
+if(NOVA_BUILD_TESTS)
+    enable_testing()
+    add_executable(nova-runtime-entry-smoke
+        runtime/tests/NovaRuntimeEntrySmoke.cpp
+    )
+    target_link_libraries(nova-runtime-entry-smoke PRIVATE Nova::Runtime)
+    target_compile_features(nova-runtime-entry-smoke PRIVATE cxx_std_17)
+    add_test(NAME nova-runtime-entry-smoke COMMAND nova-runtime-entry-smoke)
+endif()
+
 # The complete upstream build graph is preserved verbatim under the explicit
 # legacy boundary while its implementation is being migrated into runtime/.
 set(NOVA_LEGACY_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/legacy/CMakeLists.txt")
