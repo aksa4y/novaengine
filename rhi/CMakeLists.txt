@@ -17,6 +17,7 @@ set(NOVA_RHI_SOURCES
     src/SokolRHI.cpp
     src/NativeBackendStubs.cpp
     src/Capabilities.cpp
+    src/BackendSelection.cpp
     src/VulkanRHI.cpp
     src/D3D11RHI.cpp
     src/D3D12RHI.cpp
