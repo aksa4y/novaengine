@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include <nova/rhi/Capabilities.h>
 #include <nova/rhi/RHI.h>
 
 namespace Nova::Runtime {
@@ -22,6 +23,13 @@ public:
     bool is_initialized() const noexcept { return device_ != nullptr; }
     RHI::Device* device() noexcept { return device_.get(); }
     const RHI::Device* device() const noexcept { return device_.get(); }
+
+    RHI::Capabilities capabilities() const noexcept {
+        if (!device_) {
+            return {};
+        }
+        return RHI::query_capabilities(*device_);
+    }
 
 private:
     std::unique_ptr<RHI::Device> device_;
