@@ -33,9 +33,34 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Validate migration tool
+        if: steps.guard.outputs.skip != 'true'
+        run: python3 -m py_compile tools/nova/rebrand.py
+
       - name: Run mechanical rename
         if: steps.guard.outputs.skip != 'true'
         run: python3 tools/nova/rebrand.py
+
+      - name: Verify project-owned tree has no legacy Doriax identifiers
+        if: steps.guard.outputs.skip != 'true'
+        shell: bash
+        run: |
+          if git grep -n -I -e DORIAX -e Doriax -e doriax -- ':!libs/*' ':!tools/nova/rebrand.py'; then
+            echo 'Legacy Doriax identifiers remain outside excluded vendor/tooling paths.'
+            exit 1
+          fi
+
+      - name: Verify Nova CMake entrypoints
+        if: steps.guard.outputs.skip != 'true'
+        shell: bash
+        run: |
+          test -f CMakeLists.txt
+          test -f rhi/CMakeLists.txt
+          test -f runtime/CMakeLists.txt
+          test -f editor/CMakeLists.txt
+          test -f cmake/legacy/CMakeLists.txt
+          grep -q 'Nova::RHI' runtime/CMakeLists.txt
+          grep -q 'Nova::Runtime' editor/CMakeLists.txt
 
       - name: Commit rebrand
         if: steps.guard.outputs.skip != 'true'
