@@ -5,9 +5,9 @@ namespace {
 
 // Transitional Sokol backend seam.
 //
-// The legacy engine already owns the real Sokol renderer. This object gives the
-// new RHI a stable Sokol backend identity without duplicating GPU ownership.
-// Resource translation and frame submission will be moved here incrementally.
+// The legacy engine already owns the real Sokol renderer. This adapter keeps
+// the public Nova RHI backend identity and validates resources while ownership
+// is migrated out of the legacy renderer.
 class SokolTexture final : public Texture {
 public:
     explicit SokolTexture(TextureDesc desc) : desc_(desc) {}
@@ -20,6 +20,9 @@ class SokolDevice final : public Device {
 public:
     Backend backend() const noexcept override { return Backend::Sokol; }
     std::string_view backend_name() const noexcept override { return "Sokol"; }
+    Capabilities capabilities() const noexcept override {
+        return {true, false, true, false};
+    }
 
     std::unique_ptr<Texture> create_texture(const TextureDesc& desc) override {
         if (desc.width == 0 || desc.height == 0 || desc.mip_levels == 0) {
@@ -28,13 +31,8 @@ public:
         return std::make_unique<SokolTexture>(desc);
     }
 
-    void begin_frame() override {
-        // Legacy SokolSystem remains the frame owner during migration.
-    }
-
-    void end_frame() override {
-        // Legacy SokolSystem remains the frame owner during migration.
-    }
+    void begin_frame() override {}
+    void end_frame() override {}
 };
 
 } // namespace
