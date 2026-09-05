@@ -3,61 +3,40 @@
 Nova Engine is the renamed and independently developed fork of the original
 Doriax Engine codebase.
 
-The project keeps the original engine capabilities while migrating its public
-architecture to explicit Nova layers:
+Public architecture:
 
 ```text
-Game / Application
-        |
-        v
-Nova::Runtime
-        |
-        v
-Nova::RHI
-
-Nova::EditorCore
-        |
-        v
-Nova::Runtime
+Application
+   |
+Nova::EditorCore -> Nova::Runtime -> Nova::RHI
 ```
 
-## Project direction
+`Nova::RHI` is the graphics abstraction, `Nova::Runtime` is the game-facing
+runtime boundary, and `Nova::EditorCore` is the editor boundary. New code must
+follow `Editor -> Runtime -> RHI` and must not introduce Runtime -> Editor or
+RHI -> Editor dependencies.
 
-Nova is being rebranded and mechanically migrated from the upstream Doriax
-implementation. Third-party code under `libs/` remains third-party and is not
-renamed.
+The repository is being mechanically rebranded from Doriax to Nova. Vendored
+third-party libraries under `libs/` are intentionally excluded from the rename.
 
-The public targets are:
-
-- `Nova::RHI` — graphics abstraction and backend selection
-- `Nova::Runtime` — game/runtime-facing API
-- `Nova::EditorCore` — editor-facing boundary
-
-The dependency direction is strict: `Editor -> Runtime -> RHI`.
-
-## Platforms
-
-The inherited project targets desktop platforms and mobile/web export paths;
-Nova's backend roadmap includes OpenGL, Vulkan, Direct3D, Metal and WebGPU,
-with Android and HTML/WebAssembly treated as first-class runtime targets.
+The original upstream build graph is preserved at
+`cmake/legacy/CMakeLists.txt` while the implementation is migrated into the
+Nova runtime tree.
 
 ## Build
 
-```text
+```bash
 cmake -S . -B build
 cmake --build build --config Release
 ```
 
-For the standalone RHI smoke test:
+Standalone RHI smoke test:
 
-```text
+```bash
 cmake -S rhi -B build-rhi
 cmake --build build-rhi
 ctest --test-dir build-rhi --output-on-failure
 ```
-
-The original upstream root build graph is preserved in
-`cmake/legacy/CMakeLists.txt` while the final source migration is completed.
 
 ## License
 
