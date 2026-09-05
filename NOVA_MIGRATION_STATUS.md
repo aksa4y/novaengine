@@ -26,43 +26,27 @@ Nova::Runtime
 
 ## Active migration state
 
-- `rhi/` contains the public rendering abstraction and backend factory.
-- `runtime/` contains the new public Runtime boundary.
-- `editor/` contains the new public Editor boundary.
-- `Nova::Runtime` links only to `Nova::RHI`; it does not link to the legacy
-  `doriax` target and does not include `engine/` headers.
-- Legacy `engine/` remains intact as a temporary compatibility/build source.
-- `runtime/legacy/CMakeLists.txt` is the compatibility seam for the old build.
-- `cmake/NovaRuntime.cmake` remains the migration integration point used while
-  the large legacy root build file is being mechanically replaced.
+- `rhi/` contains the public Nova rendering abstraction and backend factory.
+- `runtime/` contains the public Nova Runtime boundary.
+- `editor/` contains the public Nova Editor boundary.
+- The original upstream CMake graph is preserved at `cmake/legacy/CMakeLists.txt`.
+- The root build entry point is now `NovaEngine` and exposes the public dependency direction `Editor -> Runtime -> RHI`.
+- Legacy `engine/` remains temporarily while its implementation is migrated into `runtime/`.
+- New code must use `Nova::RHI`, `Nova::Runtime`, and `Nova::EditorCore`.
 
-## Single-branch rule
+## Rebrand
 
-All Nova migration work is developed on:
+The repository is being mechanically rebranded from Doriax to Nova. The
+one-time rebrand script lives at `tools/nova/rebrand.py` and deliberately skips
+vendored third-party code under `libs/`.
 
-`feature/nova-foundation`
+## Single branch
 
-No new implementation commits should be placed on temporary migration
-branches. Temporary branches created during earlier tooling experiments are
-not part of the Nova development line.
-
-## Dependency rule
-
-New code uses only these public targets:
-
-- `Nova::RHI`
-- `Nova::Runtime`
-- `Nova::EditorCore`
-
-Required dependency direction:
-
-`Editor -> Runtime -> RHI`
-
-Runtime must never depend on Editor. RHI must never depend on Editor.
+All active Nova development is performed on `feature/nova-foundation`.
 
 ## Verification
 
-Standalone RHI smoke test:
+The standalone RHI smoke test remains:
 
 ```text
 cmake -S rhi -B build-rhi
@@ -70,6 +54,5 @@ cmake --build build-rhi
 ctest --test-dir build-rhi --output-on-failure
 ```
 
-A full native editor build is not claimed as verified in this environment;
-the remaining mechanical step is replacing the legacy root CMake orchestration
-without losing its platform/resource/shader configuration.
+The full native editor build has not been claimed as verified from this
+environment.
