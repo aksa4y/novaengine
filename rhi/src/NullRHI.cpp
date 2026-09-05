@@ -18,13 +18,19 @@ public:
 };
 } // namespace
 
+std::unique_ptr<Device> create_null_device() {
+    return std::make_unique<NullDevice>();
+}
+
 std::unique_ptr<Device> create_device(const DeviceDesc& desc) {
-    // The first migration step intentionally supports only Null. Existing
-    // Doriax/Sokol rendering remains untouched until the adapter is introduced.
-    if (desc.backend == Backend::Null || desc.backend == Backend::Sokol) {
-        return std::make_unique<NullDevice>();
+    switch (desc.backend) {
+        case Backend::Null:
+            return create_null_device();
+        case Backend::Sokol:
+            return create_sokol_device();
+        default:
+            return nullptr;
     }
-    return nullptr;
 }
 
 } // namespace Nova::RHI
