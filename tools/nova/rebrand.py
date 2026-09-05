@@ -1,32 +1,42 @@
 #!/usr/bin/env python3
-"""Mechanical Doriax -> Nova rebrand.
+"""Complete project-owned Doriax -> Nova mechanical rebrand.
 
-Rewrites project-owned text/source files and filenames while excluding vendored
-third-party trees. The script is idempotent and intended for the one-time
-migration on feature/nova-foundation.
+The migration intentionally excludes vendored third-party code under libs/.
+It updates source/configuration/documentation text and renames project-owned
+files whose names contain Doriax/doriax/DORIAX. Run from the repository root.
+The mapping is idempotent and safe to rerun.
 """
 from __future__ import annotations
 
 from pathlib import Path
-import os
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
-SKIP_DIRS = {".git", "libs", "build", "build-rhi", "cmake-build-debug", "cmake-build-release"}
+SKIP_DIRS = {
+    ".git",
+    "libs",
+    "build",
+    "build-rhi",
+    "Build",
+    "cmake-build-debug",
+    "cmake-build-release",
+    "out",
+    "dist",
+}
+SKIP_FILES = {Path("tools/nova/rebrand.py")}
 TEXT_EXTS = {
     ".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx", ".m", ".mm",
     ".cmake", ".md", ".txt", ".in", ".py", ".sh", ".yml", ".yaml", ".json",
     ".glsl", ".frag", ".vert", ".xml", ".plist", ".rc", ".rc2", ".ini", ".cfg",
-    ".lua", ".js", ".ts", ".html", ".css", ".svg"
+    ".lua", ".js", ".ts", ".html", ".css", ".svg", ".cs", ".java", ".toml",
 }
+TEXT_FILENAMES = {"CMakeLists.txt", "Dockerfile"}
 NAME_REPLACEMENTS = (("DORIAX", "NOVA"), ("Doriax", "Nova"), ("doriax", "nova"))
-CONTENT_REPLACEMENTS = NAME_REPLACEMENTS
 
 
 def tracked_files() -> list[Path]:
     raw = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT)
-    paths = [ROOT / item.decode("utf-8") for item in raw.split(b"\0") if item]
-    return paths
+    return [ROOT / item.decode("utf-8") for item in raw.split(b"\0") if item]
 
 
 def should_skip(path: Path) -> bool:
@@ -34,22 +44,22 @@ def should_skip(path: Path) -> bool:
         rel = path.relative_to(ROOT)
     except ValueError:
         return True
-    return any(part in SKIP_DIRS for part in rel.parts)
+    return rel in SKIP_FILES or any(part in SKIP_DIRS for part in rel.parts)
 
 
 def is_text_candidate(path: Path) -> bool:
-    return path.suffix.lower() in TEXT_EXTS
+    return path.name in TEXT_FILENAMES or path.suffix.lower() in TEXT_EXTS
 
 
 def rewrite_content(path: Path) -> bool:
-    if should_skip(path) or not is_text_candidate(path):
+    if should_skip(path) or not path.exists() or not is_text_candidate(path):
         return False
     try:
         data = path.read_text(encoding="utf-8")
     except (UnicodeDecodeError, OSError):
         return False
     updated = data
-    for old, new in CONTENT_REPLACEMENTS:
+    for old, new in NAME_REPLACEMENTS:
         updated = updated.replace(old, new)
     if updated == data:
         return False
@@ -59,15 +69,13 @@ def rewrite_content(path: Path) -> bool:
 
 def rename_paths() -> int:
     renamed = 0
-    paths = sorted(tracked_files(), key=lambda p: len(p.parts), reverse=True)
-    for path in paths:
-        if should_skip(path):
+    for path in sorted(tracked_files(), key=lambda p: len(p.parts), reverse=True):
+        if should_skip(path) or not path.exists():
             continue
-        name = path.name
-        updated = name
+        updated = path.name
         for old, new in NAME_REPLACEMENTS:
             updated = updated.replace(old, new)
-        if updated != name:
+        if updated != path.name:
             dest = path.with_name(updated)
             if not dest.exists():
                 path.rename(dest)
@@ -76,12 +84,10 @@ def rename_paths() -> int:
 
 
 def main() -> int:
-    changed = 0
-    for path in tracked_files():
-        if path.exists() and rewrite_content(path):
-            changed += 1
+    changed = sum(1 for path in tracked_files() if rewrite_content(path))
     renamed = rename_paths()
-    print(f"rebrand: content_files={changed} renamed_paths={renamed}")
+    print(f"Nova rebrand: content_files={changed} renamed_paths={renamed}")
+    print("Vendored/generated exclusions: libs/, .git/, build trees, out/, dist/.")
     return 0
 
 
