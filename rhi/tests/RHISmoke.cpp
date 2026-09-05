@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstdint>
 
 #include <nova/rhi/Capabilities.h>
 #include <nova/rhi/RHI.h>
@@ -17,8 +18,34 @@ int main() {
     assert(!null_caps.compute);
     assert(!null_caps.present);
 
+    auto buffer = null_device->create_buffer({128, BufferUsage::Vertex, true});
+    assert(buffer);
+    assert(buffer->size() == 128);
+    const std::uint32_t marker = 0x12345678u;
+    assert(buffer->write(0, &marker, sizeof(marker)));
+    assert(!buffer->write(125, &marker, sizeof(marker)));
+
     auto texture = null_device->create_texture({64, 64, 1});
     assert(texture);
+
+    auto pipeline = null_device->create_pipeline();
+    auto commands = null_device->create_command_buffer();
+    assert(pipeline);
+    assert(commands);
+    commands->begin();
+    commands->begin_render_pass();
+    commands->set_pipeline(pipeline.get());
+    commands->set_vertex_buffer(buffer.get());
+    commands->draw(3);
+    commands->end_render_pass();
+    commands->end();
+
+    auto swapchain = null_device->create_swapchain(1280, 720);
+    assert(swapchain);
+    assert(swapchain->width() == 1280);
+    assert(swapchain->height() == 720);
+    assert(swapchain->acquire());
+    assert(swapchain->present());
 
     null_device->begin_frame();
     null_device->end_frame();
@@ -35,8 +62,7 @@ int main() {
     assert(sokol_caps.present);
     assert(sokol_caps.compute);
 
-    // Unsupported backends must fail explicitly until their native adapters
-    // are linked into Nova RHI.
+    // Native backends remain optional in this foundation build.
     assert(!create_device({Backend::Vulkan, false}));
     assert(!create_device({Backend::D3D11, false}));
     assert(!create_device({Backend::D3D12, false}));
