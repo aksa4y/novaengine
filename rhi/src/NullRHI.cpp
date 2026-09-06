@@ -53,9 +53,12 @@ public:
     std::unique_ptr<Texture> create_texture(const TextureDesc&) override { return std::make_unique<NullTexture>(); }
     std::unique_ptr<CommandBuffer> create_command_buffer() override { return std::make_unique<NullCommandBuffer>(); }
     std::unique_ptr<Pipeline> create_pipeline() override { return std::make_unique<NullPipeline>(); }
+    std::unique_ptr<Pipeline> create_pipeline(const GraphicsPipelineDesc&) override { return std::make_unique<NullPipeline>(); }
     std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc& desc) override {
         return (desc.width && desc.height) ? std::make_unique<NullSwapchain>(desc) : nullptr;
     }
+    bool submit(CommandBuffer&, Swapchain*) override { return true; }
+    bool wait_idle() override { return true; }
     void begin_frame() override {}
     void end_frame() override {}
 };
