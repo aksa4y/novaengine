@@ -84,9 +84,16 @@ bool Renderer::end_render_pass() {
 bool Renderer::draw_mesh(const Mesh& mesh, RHI::Pipeline& pipeline) {
     if (!render_pass_active_ || !frame_active_ || !mesh.is_ready()) return false;
     if (mesh.device() != device_) return false;
+
     command_buffer_->set_pipeline(&pipeline);
     command_buffer_->set_vertex_buffer(mesh.vertex_buffer(), 0);
-    command_buffer_->draw(mesh.vertex_count());
+
+    if (mesh.is_indexed()) {
+        command_buffer_->set_index_buffer(mesh.index_buffer());
+        command_buffer_->draw_indexed(mesh.index_count());
+    } else {
+        command_buffer_->draw(mesh.vertex_count());
+    }
     return true;
 }
 
