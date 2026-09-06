@@ -3,9 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <span>
 #include <string_view>
-#include <vector>
 
 namespace Nova::RHI {
 
@@ -49,7 +47,7 @@ class Buffer {
 public:
     virtual ~Buffer() = default;
     virtual std::size_t size() const noexcept = 0;
-    virtual bool write(std::size_t offset, std::span<const std::byte> data) = 0;
+    virtual bool write(std::size_t offset, const void* data, std::size_t size) = 0;
 };
 
 class Pipeline {
