@@ -7,6 +7,7 @@
 add_library(nova-runtime STATIC
     src/Runtime.cpp
     src/Renderer.cpp
+    src/Mesh.cpp
 )
 add_library(Nova::Runtime ALIAS nova-runtime)
 
@@ -27,4 +28,9 @@ if(BUILD_TESTING)
     target_link_libraries(nova-runtime-renderer-smoke PRIVATE Nova::Runtime)
     target_compile_features(nova-runtime-renderer-smoke PRIVATE cxx_std_17)
     add_test(NAME nova-runtime-renderer-smoke COMMAND nova-runtime-renderer-smoke)
+
+    add_executable(nova-runtime-mesh-smoke tests/MeshSmoke.cpp)
+    target_link_libraries(nova-runtime-mesh-smoke PRIVATE Nova::Runtime)
+    target_compile_features(nova-runtime-mesh-smoke PRIVATE cxx_std_17)
+    add_test(NAME nova-runtime-mesh-smoke COMMAND nova-runtime-mesh-smoke)
 endif()
