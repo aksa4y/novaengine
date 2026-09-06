@@ -21,3 +21,10 @@ target_include_directories(nova-runtime
 )
 
 target_compile_features(nova-runtime PUBLIC cxx_std_17)
+
+if(BUILD_TESTING)
+    add_executable(nova-runtime-renderer-smoke tests/RendererSmoke.cpp)
+    target_link_libraries(nova-runtime-renderer-smoke PRIVATE Nova::Runtime)
+    target_compile_features(nova-runtime-renderer-smoke PRIVATE cxx_std_17)
+    add_test(NAME nova-runtime-renderer-smoke COMMAND nova-runtime-renderer-smoke)
+endif()
