@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <string_view>
 #include <vector>
 
 namespace Nova::RHI {
@@ -99,7 +98,14 @@ public:
     virtual void end_render_pass() = 0;
     virtual void set_pipeline(Pipeline* pipeline) = 0;
     virtual void set_vertex_buffer(Buffer* buffer, std::uint32_t slot = 0) = 0;
+    virtual void set_index_buffer(Buffer* buffer) { (void)buffer; }
     virtual void draw(std::uint32_t vertex_count, std::uint32_t first_vertex = 0) = 0;
+    virtual void draw_indexed(std::uint32_t index_count, std::uint32_t first_index = 0,
+                              std::int32_t vertex_offset = 0) {
+        (void)index_count;
+        (void)first_index;
+        (void)vertex_offset;
+    }
 };
 
 class Swapchain {
