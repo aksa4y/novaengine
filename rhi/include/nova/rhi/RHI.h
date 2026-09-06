@@ -83,6 +83,11 @@ public:
         return create_swapchain(desc);
     }
 
+    // Submit an already-recorded command buffer to the backend queue.
+    // Backends that cannot submit through this generic hook return false.
+    virtual bool submit(CommandBuffer&) { return false; }
+    virtual bool wait_idle() { return false; }
+
     virtual void begin_frame() = 0;
     virtual void end_frame() = 0;
 };
