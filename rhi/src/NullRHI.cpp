@@ -28,7 +28,9 @@ public:
     void end_render_pass() override { render_pass_ = false; }
     void set_pipeline(Pipeline*) override {}
     void set_vertex_buffer(Buffer*, std::uint32_t) override {}
+    void set_index_buffer(Buffer*) override {}
     void draw(std::uint32_t, std::uint32_t) override {}
+    void draw_indexed(std::uint32_t, std::uint32_t, std::int32_t) override {}
 private:
     bool recording_ = false;
     bool render_pass_ = false;
