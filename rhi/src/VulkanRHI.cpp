@@ -39,6 +39,21 @@ namespace {
 
 constexpr std::uint32_t invalid_index = std::numeric_limits<std::uint32_t>::max();
 
+bool instance_extension_supported(const char* name) {
+    std::uint32_t count = 0;
+    if (vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr) != VK_SUCCESS) return false;
+    std::vector<VkExtensionProperties> properties(count);
+    if (vkEnumerateInstanceExtensionProperties(nullptr, &count, properties.data()) != VK_SUCCESS) return false;
+    for (const auto& property : properties) {
+        if (std::strcmp(property.extensionName, name) == 0) return true;
+    }
+    return false;
+}
+
+void add_supported_extension(std::vector<const char*>& extensions, const char* name) {
+    if (instance_extension_supported(name)) extensions.push_back(name);
+}
+
 std::uint32_t find_graphics_queue_family(VkPhysicalDevice physical_device) {
     std::uint32_t count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, nullptr);
@@ -51,15 +66,11 @@ std::uint32_t find_graphics_queue_family(VkPhysicalDevice physical_device) {
     return invalid_index;
 }
 
-std::uint32_t find_memory_type(
-    VkPhysicalDevice physical_device,
-    std::uint32_t type_bits,
-    VkMemoryPropertyFlags required_flags) {
+std::uint32_t find_memory_type(VkPhysicalDevice physical_device, std::uint32_t type_bits, VkMemoryPropertyFlags required_flags) {
     VkPhysicalDeviceMemoryProperties properties{};
     vkGetPhysicalDeviceMemoryProperties(physical_device, &properties);
     for (std::uint32_t i = 0; i < properties.memoryTypeCount; ++i) {
-        if ((type_bits & (1u << i)) == 0) continue;
-        if ((properties.memoryTypes[i].propertyFlags & required_flags) == required_flags) return i;
+        if ((type_bits & (1u << i)) != 0 && (properties.memoryTypes[i].propertyFlags & required_flags) == required_flags) return i;
     }
     return invalid_index;
 }
@@ -90,7 +101,7 @@ bool make_surface(VkInstance instance, const NativeWindowHandle& handle, VkSurfa
             if (!handle.window || !handle.display) return false;
             VkXlibSurfaceCreateInfoKHR info{VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR};
             info.dpy = reinterpret_cast<Display*>(handle.display);
-            info.window = static_cast< ::Window >(handle.window);
+            info.window = static_cast<::Window>(handle.window);
             return vkCreateXlibSurfaceKHR(instance, &info, nullptr, &surface) == VK_SUCCESS;
         }
 #endif
@@ -117,10 +128,9 @@ bool make_surface(VkInstance instance, const NativeWindowHandle& handle, VkSurfa
             if (!handle.window) return false;
             VkMetalSurfaceCreateInfoEXT info{VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT};
             info.pLayer = reinterpret_cast<const void*>(handle.window);
-            auto create_metal_surface = reinterpret_cast<PFN_vkCreateMetalSurfaceEXT>(
+            const auto create_surface = reinterpret_cast<PFN_vkCreateMetalSurfaceEXT>(
                 vkGetInstanceProcAddr(instance, "vkCreateMetalSurfaceEXT"));
-            return create_metal_surface != nullptr &&
-                   create_metal_surface(instance, &info, nullptr, &surface) == VK_SUCCESS;
+            return create_surface != nullptr && create_surface(instance, &info, nullptr, &surface) == VK_SUCCESS;
         }
 #endif
         default:
@@ -128,33 +138,33 @@ bool make_surface(VkInstance instance, const NativeWindowHandle& handle, VkSurfa
     }
 }
 
-void append_surface_extensions(std::vector<const char*>& extensions, NativeWindowType type) {
-    extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+void add_surface_extensions(std::vector<const char*>& extensions, NativeWindowType type) {
+    add_supported_extension(extensions, VK_KHR_SURFACE_EXTENSION_NAME);
     switch (type) {
         case NativeWindowType::Win32:
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-            extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+            add_supported_extension(extensions, VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #endif
             break;
         case NativeWindowType::X11:
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
-            extensions.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+            add_supported_extension(extensions, VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 #endif
             break;
         case NativeWindowType::Wayland:
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
-            extensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+            add_supported_extension(extensions, VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 #endif
             break;
         case NativeWindowType::Android:
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-            extensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+            add_supported_extension(extensions, VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 #endif
             break;
         case NativeWindowType::Cocoa:
         case NativeWindowType::UIKit:
 #if defined(VK_USE_PLATFORM_METAL_EXT)
-            extensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
+            add_supported_extension(extensions, VK_EXT_METAL_SURFACE_EXTENSION_NAME);
 #endif
             break;
         default:
@@ -164,31 +174,27 @@ void append_surface_extensions(std::vector<const char*>& extensions, NativeWindo
 
 class VulkanBuffer final : public Buffer {
 public:
-    VulkanBuffer(VkDevice device, VkPhysicalDevice physical_device, const BufferDesc& desc)
-        : device_(device), size_(desc.size) {
+    VulkanBuffer(VkDevice device, VkPhysicalDevice physical_device, const BufferDesc& desc) : device_(device), size_(desc.size) {
         if (size_ == 0) return;
         VkBufferCreateInfo info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
         info.size = size_;
-        info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                     VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                     VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                     VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                     VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                     VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         if (vkCreateBuffer(device_, &info, nullptr, &buffer_) != VK_SUCCESS) return;
         VkMemoryRequirements requirements{};
         vkGetBufferMemoryRequirements(device_, buffer_, &requirements);
-        const VkMemoryPropertyFlags flags = desc.cpu_visible
+        const auto flags = desc.cpu_visible
             ? VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
             : VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-        const std::uint32_t type = find_memory_type(physical_device, requirements.memoryTypeBits, flags);
-        if (type == invalid_index) { destroy(); return; }
+        const std::uint32_t memory_type = find_memory_type(physical_device, requirements.memoryTypeBits, flags);
+        if (memory_type == invalid_index) { destroy(); return; }
         VkMemoryAllocateInfo allocation{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
         allocation.allocationSize = requirements.size;
-        allocation.memoryTypeIndex = type;
+        allocation.memoryTypeIndex = memory_type;
         if (vkAllocateMemory(device_, &allocation, nullptr, &memory_) != VK_SUCCESS) { destroy(); return; }
-        if (vkBindBufferMemory(device_, buffer_, memory_, 0) != VK_SUCCESS) { destroy(); return; }
+        if (vkBindBufferMemory(device_, buffer_, memory_, 0) != VK_SUCCESS) destroy();
     }
     ~VulkanBuffer() override { destroy(); }
     bool valid() const noexcept { return buffer_ != VK_NULL_HANDLE && memory_ != VK_NULL_HANDLE; }
@@ -201,7 +207,6 @@ public:
         vkUnmapMemory(device_, memory_);
         return true;
     }
-    VkBuffer handle() const noexcept { return buffer_; }
 private:
     void destroy() {
         if (memory_ != VK_NULL_HANDLE) vkFreeMemory(device_, memory_, nullptr);
@@ -238,7 +243,7 @@ public:
         recording_ = vkBeginCommandBuffer(command_buffer_, &info) == VK_SUCCESS;
     }
     void end() override {
-        if (recording_) recording_ = vkEndCommandBuffer(command_buffer_) != VK_SUCCESS;
+        if (recording_) recording_ = vkEndCommandBuffer(command_buffer_) == VK_SUCCESS;
     }
     void begin_render_pass() override { render_pass_ = recording_; }
     void end_render_pass() override { render_pass_ = false; }
@@ -255,38 +260,26 @@ private:
 
 class VulkanSwapchain final : public Swapchain {
 public:
-    VulkanSwapchain(
-        VkDevice device,
-        VkPhysicalDevice physical_device,
-        VkQueue present_queue,
-        const SwapchainDesc& desc,
-        VkSurfaceKHR surface,
-        VkSwapchainKHR swapchain,
-        std::vector<VkImage> images,
-        std::vector<VkImageView> views,
-        VkSemaphore image_available)
-        : device_(device), physical_device_(physical_device), present_queue_(present_queue),
-          width_(desc.width), height_(desc.height), surface_(surface), swapchain_(swapchain),
-          images_(std::move(images)), views_(std::move(views)), image_available_(image_available) {}
-
+    VulkanSwapchain(VkInstance instance, VkDevice device, VkSurfaceKHR surface, VkSwapchainKHR swapchain,
+                    std::uint32_t width, std::uint32_t height, std::vector<VkImage> images,
+                    std::vector<VkImageView> views, VkSemaphore image_available, VkQueue present_queue)
+        : instance_(instance), device_(device), surface_(surface), swapchain_(swapchain), width_(width),
+          height_(height), images_(std::move(images)), views_(std::move(views)), image_available_(image_available),
+          present_queue_(present_queue) {}
     ~VulkanSwapchain() override {
         if (image_available_ != VK_NULL_HANDLE) vkDestroySemaphore(device_, image_available_, nullptr);
         for (VkImageView view : views_) vkDestroyImageView(device_, view, nullptr);
         if (swapchain_ != VK_NULL_HANDLE) vkDestroySwapchainKHR(device_, swapchain_, nullptr);
         if (surface_ != VK_NULL_HANDLE) vkDestroySurfaceKHR(instance_, surface_, nullptr);
     }
-
-    void set_instance(VkInstance instance) noexcept { instance_ = instance; }
     std::uint32_t width() const noexcept override { return width_; }
     std::uint32_t height() const noexcept override { return height_; }
-
     bool acquire() override {
         if (swapchain_ == VK_NULL_HANDLE) return false;
         const VkResult result = vkAcquireNextImageKHR(device_, swapchain_, UINT64_MAX, image_available_, VK_NULL_HANDLE, &image_index_);
         acquired_ = result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR;
         return acquired_;
     }
-
     bool present() override {
         if (!acquired_ || swapchain_ == VK_NULL_HANDLE) return false;
         VkPresentInfoKHR info{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
@@ -299,19 +292,17 @@ public:
         acquired_ = false;
         return result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR;
     }
-
 private:
-    VkDevice device_ = VK_NULL_HANDLE;
-    VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
-    VkQueue present_queue_ = VK_NULL_HANDLE;
     VkInstance instance_ = VK_NULL_HANDLE;
-    std::uint32_t width_ = 1;
-    std::uint32_t height_ = 1;
+    VkDevice device_ = VK_NULL_HANDLE;
     VkSurfaceKHR surface_ = VK_NULL_HANDLE;
     VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
+    std::uint32_t width_ = 1;
+    std::uint32_t height_ = 1;
     std::vector<VkImage> images_;
     std::vector<VkImageView> views_;
     VkSemaphore image_available_ = VK_NULL_HANDLE;
+    VkQueue present_queue_ = VK_NULL_HANDLE;
     std::uint32_t image_index_ = 0;
     bool acquired_ = false;
 };
@@ -326,9 +317,29 @@ public:
         app.engineVersion = 1;
         app.apiVersion = VK_API_VERSION_1_0;
 
-        VkInstanceCreateInfo info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
-        info.pApplicationInfo = &app;
-        if (vkCreateInstance(&info, nullptr, &instance_) != VK_SUCCESS) return;
+        std::vector<const char*> extensions;
+        add_supported_extension(extensions, VK_KHR_SURFACE_EXTENSION_NAME);
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+        add_supported_extension(extensions, VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+#endif
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+        add_supported_extension(extensions, VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+#endif
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+        add_supported_extension(extensions, VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+#endif
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+        add_supported_extension(extensions, VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+#endif
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+        add_supported_extension(extensions, VK_EXT_METAL_SURFACE_EXTENSION_NAME);
+#endif
+
+        VkInstanceCreateInfo instance_info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+        instance_info.pApplicationInfo = &app;
+        instance_info.enabledExtensionCount = static_cast<std::uint32_t>(extensions.size());
+        instance_info.ppEnabledExtensionNames = extensions.data();
+        if (vkCreateInstance(&instance_info, nullptr, &instance_) != VK_SUCCESS) return;
 
         std::uint32_t device_count = 0;
         if (vkEnumeratePhysicalDevices(instance_, &device_count, nullptr) != VK_SUCCESS || device_count == 0) return;
@@ -339,6 +350,7 @@ public:
             if (family != invalid_index) { physical_device_ = candidate; graphics_queue_family_ = family; break; }
         }
         if (physical_device_ == VK_NULL_HANDLE) return;
+
         const float priority = 1.0f;
         VkDeviceQueueCreateInfo queue_info{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
         queue_info.queueFamilyIndex = graphics_queue_family_;
@@ -349,6 +361,7 @@ public:
         device_info.pQueueCreateInfos = &queue_info;
         if (vkCreateDevice(physical_device_, &device_info, nullptr, &device_) != VK_SUCCESS) return;
         vkGetDeviceQueue(device_, graphics_queue_family_, 0, &graphics_queue_);
+
         VkCommandPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
         pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         pool_info.queueFamilyIndex = graphics_queue_family_;
@@ -366,8 +379,7 @@ public:
         if (instance_ != VK_NULL_HANDLE) vkDestroyInstance(instance_, nullptr);
     }
     bool valid() const noexcept {
-        return instance_ != VK_NULL_HANDLE && physical_device_ != VK_NULL_HANDLE &&
-               device_ != VK_NULL_HANDLE && command_pool_ != VK_NULL_HANDLE;
+        return instance_ != VK_NULL_HANDLE && physical_device_ != VK_NULL_HANDLE && device_ != VK_NULL_HANDLE && command_pool_ != VK_NULL_HANDLE;
     }
     Backend backend() const noexcept override { return Backend::Vulkan; }
     std::string_view backend_name() const noexcept override { return "Vulkan"; }
@@ -386,9 +398,6 @@ public:
     std::unique_ptr<Pipeline> create_pipeline() override { return std::make_unique<VulkanPipeline>(); }
     std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc& desc) override {
         if (!valid() || desc.width == 0 || desc.height == 0 || desc.window.type == NativeWindowType::None) return nullptr;
-
-        std::vector<const char*> extensions;
-        append_surface_extensions(extensions, desc.window.type);
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         if (!make_surface(instance_, desc.window, surface)) return nullptr;
 
@@ -397,7 +406,6 @@ public:
             vkDestroySurfaceKHR(instance_, surface, nullptr);
             return nullptr;
         }
-
         std::uint32_t format_count = 0;
         std::uint32_t mode_count = 0;
         VkSurfaceCapabilitiesKHR capabilities{};
@@ -450,11 +458,18 @@ public:
             vkDestroySurfaceKHR(instance_, surface, nullptr);
             return nullptr;
         }
-
-        std::uint32_t image_count_actual = 0;
-        vkGetSwapchainImagesKHR(device_, swapchain, &image_count_actual, nullptr);
-        std::vector<VkImage> images(image_count_actual);
-        vkGetSwapchainImagesKHR(device_, swapchain, &image_count_actual, images.data());
+        std::uint32_t actual_count = 0;
+        if (vkGetSwapchainImagesKHR(device_, swapchain, &actual_count, nullptr) != VK_SUCCESS || actual_count == 0) {
+            vkDestroySwapchainKHR(device_, swapchain, nullptr);
+            vkDestroySurfaceKHR(instance_, surface, nullptr);
+            return nullptr;
+        }
+        std::vector<VkImage> images(actual_count);
+        if (vkGetSwapchainImagesKHR(device_, swapchain, &actual_count, images.data()) != VK_SUCCESS) {
+            vkDestroySwapchainKHR(device_, swapchain, nullptr);
+            vkDestroySurfaceKHR(instance_, surface, nullptr);
+            return nullptr;
+        }
         std::vector<VkImageView> views;
         views.reserve(images.size());
         for (VkImage image : images) {
@@ -462,12 +477,8 @@ public:
             view_info.image = image;
             view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
             view_info.format = chosen.format;
-            view_info.components = {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-                                    VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY};
             view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            view_info.subresourceRange.baseMipLevel = 0;
             view_info.subresourceRange.levelCount = 1;
-            view_info.subresourceRange.baseArrayLayer = 0;
             view_info.subresourceRange.layerCount = 1;
             VkImageView view = VK_NULL_HANDLE;
             if (vkCreateImageView(device_, &view_info, nullptr, &view) != VK_SUCCESS) {
@@ -478,7 +489,6 @@ public:
             }
             views.push_back(view);
         }
-
         VkSemaphoreCreateInfo semaphore_info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
         VkSemaphore image_available = VK_NULL_HANDLE;
         if (vkCreateSemaphore(device_, &semaphore_info, nullptr, &image_available) != VK_SUCCESS) {
@@ -487,15 +497,11 @@ public:
             vkDestroySurfaceKHR(instance_, surface, nullptr);
             return nullptr;
         }
-
-        auto result = std::make_unique<VulkanSwapchain>(device_, physical_device_, graphics_queue_, desc,
-                                                         surface, swapchain, std::move(images), std::move(views), image_available);
-        result->set_instance(instance_);
-        return result;
+        return std::make_unique<VulkanSwapchain>(instance_, device_, surface, swapchain, extent.width, extent.height,
+                                                  std::move(images), std::move(views), image_available, graphics_queue_);
     }
     void begin_frame() override {}
     void end_frame() override {}
-
 private:
     bool debug_ = false;
     VkInstance instance_ = VK_NULL_HANDLE;
