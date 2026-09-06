@@ -56,6 +56,9 @@ public:
     std::unique_ptr<Swapchain> create_swapchain(std::uint32_t width, std::uint32_t height) override {
         return (width && height) ? std::make_unique<NullSwapchain>(width, height) : nullptr;
     }
+    std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc& desc) override {
+        return create_swapchain(desc.width, desc.height);
+    }
     void begin_frame() override {}
     void end_frame() override {}
 };
