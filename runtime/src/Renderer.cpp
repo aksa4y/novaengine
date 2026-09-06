@@ -79,6 +79,15 @@ bool Renderer::end_render_pass() {
     return true;
 }
 
+bool Renderer::draw_mesh(const Mesh& mesh, RHI::Pipeline& pipeline) {
+    if (!render_pass_active_ || !mesh.is_ready()) return false;
+    if (mesh.device() != device_) return false;
+    command_buffer_->set_pipeline(&pipeline);
+    command_buffer_->set_vertex_buffer(mesh.vertex_buffer(), 0);
+    command_buffer_->draw(mesh.vertex_count());
+    return true;
+}
+
 bool Renderer::submit() {
     if (!frame_active_ || render_pass_active_ || submitted_) return false;
     command_buffer_->end();
