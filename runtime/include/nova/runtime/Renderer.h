@@ -1,12 +1,58 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 
 #include <nova/rhi/RHI.h>
-#include <nova/runtime/Mesh.h>
 
 namespace Nova::Runtime {
+
+// Runtime-owned mesh resource. It intentionally stores only RHI resources and
+// never depends on Editor or legacy engine types.
+class Mesh final {
+public:
+    Mesh() = default;
+    ~Mesh() = default;
+
+    Mesh(const Mesh&) = delete;
+    Mesh& operator=(const Mesh&) = delete;
+
+    bool upload(RHI::Device& device, const void* vertices, std::size_t vertex_bytes,
+                std::uint32_t vertex_count, std::uint32_t vertex_stride) {
+        release();
+        if (!vertices || !vertex_bytes || !vertex_count || !vertex_stride) return false;
+        if (vertex_bytes / vertex_stride < vertex_count) return false;
+
+        auto buffer = device.create_buffer({vertex_bytes, RHI::BufferUsage::Vertex, true});
+        if (!buffer || !buffer->write(0, vertices, vertex_bytes)) return false;
+
+        device_ = &device;
+        vertex_buffer_ = std::move(buffer);
+        vertex_count_ = vertex_count;
+        vertex_stride_ = vertex_stride;
+        return true;
+    }
+
+    void release() {
+        vertex_buffer_.reset();
+        vertex_count_ = 0;
+        vertex_stride_ = 0;
+        device_ = nullptr;
+    }
+
+    bool is_ready() const noexcept { return vertex_buffer_ != nullptr && vertex_count_ != 0; }
+    RHI::Buffer* vertex_buffer() const noexcept { return vertex_buffer_.get(); }
+    std::uint32_t vertex_count() const noexcept { return vertex_count_; }
+    std::uint32_t vertex_stride() const noexcept { return vertex_stride_; }
+    RHI::Device* device() const noexcept { return device_; }
+
+private:
+    RHI::Device* device_ = nullptr;
+    std::unique_ptr<RHI::Buffer> vertex_buffer_;
+    std::uint32_t vertex_count_ = 0;
+    std::uint32_t vertex_stride_ = 0;
+};
 
 class Renderer final {
 public:
