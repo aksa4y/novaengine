@@ -31,8 +31,6 @@ enum class NativeWindowType : std::uint8_t {
     Emscripten,
 };
 
-// Opaque platform handles keep the portable RHI free of Win32/X11/Android/
-// Cocoa headers. Backend adapters translate these values into native surfaces.
 struct NativeWindowHandle {
     NativeWindowType type = NativeWindowType::None;
     std::uintptr_t display = 0;
@@ -72,14 +70,19 @@ public:
     virtual Backend backend() const noexcept = 0;
     virtual std::string_view backend_name() const noexcept = 0;
 
-    // Optional resource hooks. Backend adapters override these incrementally;
-    // defaults keep older adapters source-compatible during migration.
     virtual std::unique_ptr<Buffer> create_buffer(const BufferDesc&) { return nullptr; }
     virtual std::unique_ptr<Texture> create_texture(const TextureDesc& desc) = 0;
     virtual std::unique_ptr<CommandBuffer> create_command_buffer() { return nullptr; }
     virtual std::unique_ptr<Pipeline> create_pipeline() { return nullptr; }
-    virtual std::unique_ptr<Swapchain> create_swapchain(std::uint32_t, std::uint32_t) { return nullptr; }
     virtual std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc&) { return nullptr; }
+
+    // Compatibility helper for headless/offscreen users during the surface migration.
+    std::unique_ptr<Swapchain> create_swapchain(std::uint32_t width, std::uint32_t height) {
+        SwapchainDesc desc;
+        desc.width = width;
+        desc.height = height;
+        return create_swapchain(desc);
+    }
 
     virtual void begin_frame() = 0;
     virtual void end_frame() = 0;
