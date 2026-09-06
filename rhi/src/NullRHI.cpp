@@ -35,7 +35,7 @@ private:
 };
 class NullSwapchain final : public Swapchain {
 public:
-    NullSwapchain(std::uint32_t width, std::uint32_t height) : width_(width), height_(height) {}
+    explicit NullSwapchain(const SwapchainDesc& desc) : width_(desc.width), height_(desc.height) {}
     std::uint32_t width() const noexcept override { return width_; }
     std::uint32_t height() const noexcept override { return height_; }
     bool acquire() override { acquired_ = true; return true; }
@@ -53,11 +53,8 @@ public:
     std::unique_ptr<Texture> create_texture(const TextureDesc&) override { return std::make_unique<NullTexture>(); }
     std::unique_ptr<CommandBuffer> create_command_buffer() override { return std::make_unique<NullCommandBuffer>(); }
     std::unique_ptr<Pipeline> create_pipeline() override { return std::make_unique<NullPipeline>(); }
-    std::unique_ptr<Swapchain> create_swapchain(std::uint32_t width, std::uint32_t height) override {
-        return (width && height) ? std::make_unique<NullSwapchain>(width, height) : nullptr;
-    }
     std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc& desc) override {
-        return create_swapchain(desc.width, desc.height);
+        return (desc.width && desc.height) ? std::make_unique<NullSwapchain>(desc) : nullptr;
     }
     void begin_frame() override {}
     void end_frame() override {}
