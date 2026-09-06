@@ -21,7 +21,14 @@ enum class Backend : std::uint8_t {
 };
 
 enum class NativeWindowType : std::uint8_t {
-    None, Win32, X11, Wayland, Android, Cocoa, UIKit, Emscripten,
+    None,
+    Win32,
+    X11,
+    Wayland,
+    Android,
+    Cocoa,
+    UIKit,
+    Emscripten,
 };
 
 struct NativeWindowHandle {
@@ -51,7 +58,10 @@ struct SwapchainDesc {
     NativeWindowHandle window{};
 };
 
-class Texture { public: virtual ~Texture() = default; };
+class Texture {
+public:
+    virtual ~Texture() = default;
+};
 
 class Device {
 public:
@@ -63,6 +73,14 @@ public:
     virtual std::unique_ptr<CommandBuffer> create_command_buffer() { return nullptr; }
     virtual std::unique_ptr<Pipeline> create_pipeline() { return nullptr; }
     virtual std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc&) { return nullptr; }
+
+    std::unique_ptr<Swapchain> create_swapchain(std::uint32_t width, std::uint32_t height) {
+        SwapchainDesc desc;
+        desc.width = width;
+        desc.height = height;
+        return create_swapchain(desc);
+    }
+
     virtual void begin_frame() = 0;
     virtual void end_frame() = 0;
 };
