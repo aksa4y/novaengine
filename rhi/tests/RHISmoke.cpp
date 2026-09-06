@@ -39,6 +39,9 @@ int main() {
     commands->draw(3);
     commands->end_render_pass();
     commands->end();
+    assert(!null_device->create_pipeline(GraphicsPipelineDesc{}));
+    assert(!null_device->submit(*commands));
+    assert(!null_device->wait_idle());
 
     auto swapchain = null_device->create_swapchain(1280, 720);
     assert(swapchain);
