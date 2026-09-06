@@ -74,6 +74,7 @@ public:
     virtual std::unique_ptr<Texture> create_texture(const TextureDesc& desc) = 0;
     virtual std::unique_ptr<CommandBuffer> create_command_buffer() { return nullptr; }
     virtual std::unique_ptr<Pipeline> create_pipeline() { return nullptr; }
+    virtual std::unique_ptr<Pipeline> create_pipeline(const GraphicsPipelineDesc&) { return nullptr; }
     virtual std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc&) { return nullptr; }
 
     std::unique_ptr<Swapchain> create_swapchain(std::uint32_t width, std::uint32_t height) {
@@ -83,9 +84,7 @@ public:
         return create_swapchain(desc);
     }
 
-    // Submit an already-recorded command buffer to the backend queue.
-    // Backends that cannot submit through this generic hook return false.
-    virtual bool submit(CommandBuffer&) { return false; }
+    virtual bool submit(CommandBuffer&, Swapchain* swapchain = nullptr) { return false; }
     virtual bool wait_idle() { return false; }
 
     virtual void begin_frame() = 0;
