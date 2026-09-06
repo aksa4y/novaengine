@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string_view>
@@ -61,6 +62,7 @@ struct SwapchainDesc {
 class Texture {
 public:
     virtual ~Texture() = default;
+    virtual bool upload(const void* data, std::size_t size) { return false; }
 };
 
 class Device {
