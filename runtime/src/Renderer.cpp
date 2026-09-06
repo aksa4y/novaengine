@@ -36,9 +36,7 @@ bool Renderer::initialize(RHI::Device& device, const RHI::SwapchainDesc& swapcha
 }
 
 void Renderer::shutdown() {
-    if (device_) {
-        device_->wait_idle();
-    }
+    if (device_) device_->wait_idle();
     render_pass_active_ = false;
     frame_active_ = false;
     submitted_ = false;
@@ -68,6 +66,10 @@ bool Renderer::begin_render_pass() {
     desc.target = swapchain_.get();
     copy_clear_color(desc.clear_color, clear_color_);
     command_buffer_->begin_render_pass(desc);
+    command_buffer_->set_viewport(0.0f, 0.0f,
+                                  static_cast<float>(swapchain_->width()),
+                                  static_cast<float>(swapchain_->height()));
+    command_buffer_->set_scissor(0, 0, swapchain_->width(), swapchain_->height());
     render_pass_active_ = true;
     return true;
 }
@@ -80,7 +82,7 @@ bool Renderer::end_render_pass() {
 }
 
 bool Renderer::draw_mesh(const Mesh& mesh, RHI::Pipeline& pipeline) {
-    if (!render_pass_active_ || !mesh.is_ready()) return false;
+    if (!render_pass_active_ || !frame_active_ || !mesh.is_ready()) return false;
     if (mesh.device() != device_) return false;
     command_buffer_->set_pipeline(&pipeline);
     command_buffer_->set_vertex_buffer(mesh.vertex_buffer(), 0);
