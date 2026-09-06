@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <string_view>
+#include <vector>
 
 namespace Nova::RHI {
 
@@ -35,6 +36,32 @@ struct BufferDesc {
     bool cpu_visible = false;
 };
 
+enum class VertexFormat : std::uint8_t {
+    Float1,
+    Float2,
+    Float3,
+    Float4,
+};
+
+struct VertexAttribute {
+    std::uint32_t location = 0;
+    std::uint32_t binding = 0;
+    std::uint32_t offset = 0;
+    VertexFormat format = VertexFormat::Float3;
+};
+
+struct ShaderStageDesc {
+    const std::uint32_t* code = nullptr;
+    std::size_t word_count = 0;
+};
+
+struct GraphicsPipelineDesc {
+    ShaderStageDesc vertex_shader{};
+    ShaderStageDesc fragment_shader{};
+    std::uint32_t vertex_stride = 0;
+    std::vector<VertexAttribute> vertex_attributes;
+};
+
 struct TextureResourceDesc {
     std::uint32_t width = 1;
     std::uint32_t height = 1;
@@ -55,12 +82,20 @@ public:
     virtual ~Pipeline() = default;
 };
 
+class Swapchain;
+
+struct RenderPassDesc {
+    Swapchain* target = nullptr;
+    float clear_color[4] = {0.05f, 0.05f, 0.05f, 1.0f};
+};
+
 class CommandBuffer {
 public:
     virtual ~CommandBuffer() = default;
     virtual void begin() = 0;
     virtual void end() = 0;
     virtual void begin_render_pass() = 0;
+    virtual void begin_render_pass(const RenderPassDesc& desc) { (void)desc; begin_render_pass(); }
     virtual void end_render_pass() = 0;
     virtual void set_pipeline(Pipeline* pipeline) = 0;
     virtual void set_vertex_buffer(Buffer* buffer, std::uint32_t slot = 0) = 0;
