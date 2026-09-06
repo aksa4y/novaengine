@@ -47,6 +47,17 @@ int main() {
     assert(swapchain->acquire());
     assert(swapchain->present());
 
+    SwapchainDesc swapchain_desc;
+    swapchain_desc.width = 1920;
+    swapchain_desc.height = 1080;
+    swapchain_desc.window.type = NativeWindowType::Win32;
+    swapchain_desc.window.display = 0x10u;
+    swapchain_desc.window.window = 0x20u;
+    auto described_swapchain = null_device->create_swapchain(swapchain_desc);
+    assert(described_swapchain);
+    assert(described_swapchain->width() == 1920);
+    assert(described_swapchain->height() == 1080);
+
     null_device->begin_frame();
     null_device->end_frame();
 
