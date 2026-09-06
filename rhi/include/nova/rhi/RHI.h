@@ -20,6 +20,25 @@ enum class Backend : std::uint8_t {
     WebGPU,
 };
 
+enum class NativeWindowType : std::uint8_t {
+    None,
+    Win32,
+    X11,
+    Wayland,
+    Android,
+    Cocoa,
+    UIKit,
+    Emscripten,
+};
+
+// Opaque platform handles keep the portable RHI free of Win32/X11/Android/
+// Cocoa headers. Backend adapters translate these values into native surfaces.
+struct NativeWindowHandle {
+    NativeWindowType type = NativeWindowType::None;
+    std::uintptr_t display = 0;
+    std::uintptr_t window = 0;
+};
+
 struct DeviceDesc {
     Backend backend = Backend::Auto;
     bool debug = false;
@@ -29,6 +48,16 @@ struct TextureDesc {
     std::uint32_t width = 1;
     std::uint32_t height = 1;
     std::uint32_t mip_levels = 1;
+    TextureFormat format = TextureFormat::RGBA8_UNORM;
+    std::uint32_t usage = static_cast<std::uint32_t>(TextureUsage::Sampled);
+};
+
+struct SwapchainDesc {
+    std::uint32_t width = 1;
+    std::uint32_t height = 1;
+    TextureFormat format = TextureFormat::BGRA8_UNORM;
+    std::uint32_t image_count = 2;
+    NativeWindowHandle window{};
 };
 
 class Texture {
@@ -44,12 +73,13 @@ public:
     virtual std::string_view backend_name() const noexcept = 0;
 
     // Optional resource hooks. Backend adapters override these incrementally;
-    // the defaults keep older adapters source-compatible during migration.
+    // defaults keep older adapters source-compatible during migration.
     virtual std::unique_ptr<Buffer> create_buffer(const BufferDesc&) { return nullptr; }
     virtual std::unique_ptr<Texture> create_texture(const TextureDesc& desc) = 0;
     virtual std::unique_ptr<CommandBuffer> create_command_buffer() { return nullptr; }
     virtual std::unique_ptr<Pipeline> create_pipeline() { return nullptr; }
     virtual std::unique_ptr<Swapchain> create_swapchain(std::uint32_t, std::uint32_t) { return nullptr; }
+    virtual std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc&) { return nullptr; }
 
     virtual void begin_frame() = 0;
     virtual void end_frame() = 0;
