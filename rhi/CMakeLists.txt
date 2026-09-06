@@ -18,10 +18,19 @@ set(NOVA_RHI_SOURCES
     src/NativeBackendStubs.cpp
     src/Capabilities.cpp
     src/BackendSelection.cpp
-    src/VulkanRHI.cpp
-    src/D3D11RHI.cpp
-    src/D3D12RHI.cpp
 )
+
+if(NOVA_RHI_ENABLE_VULKAN)
+    list(APPEND NOVA_RHI_SOURCES src/VulkanRHI.cpp)
+endif()
+
+if(NOVA_RHI_ENABLE_D3D11)
+    list(APPEND NOVA_RHI_SOURCES src/D3D11RHI.cpp)
+endif()
+
+if(NOVA_RHI_ENABLE_D3D12)
+    list(APPEND NOVA_RHI_SOURCES src/D3D12RHI.cpp)
+endif()
 
 if(NOVA_RHI_ENABLE_METAL)
     if(NOT APPLE)
