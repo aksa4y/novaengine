@@ -21,14 +21,7 @@ enum class Backend : std::uint8_t {
 };
 
 enum class NativeWindowType : std::uint8_t {
-    None,
-    Win32,
-    X11,
-    Wayland,
-    Android,
-    Cocoa,
-    UIKit,
-    Emscripten,
+    None, Win32, X11, Wayland, Android, Cocoa, UIKit, Emscripten,
 };
 
 struct NativeWindowHandle {
@@ -58,38 +51,23 @@ struct SwapchainDesc {
     NativeWindowHandle window{};
 };
 
-class Texture {
-public:
-    virtual ~Texture() = default;
-};
+class Texture { public: virtual ~Texture() = default; };
 
 class Device {
 public:
     virtual ~Device() = default;
-
     virtual Backend backend() const noexcept = 0;
     virtual std::string_view backend_name() const noexcept = 0;
-
     virtual std::unique_ptr<Buffer> create_buffer(const BufferDesc&) { return nullptr; }
     virtual std::unique_ptr<Texture> create_texture(const TextureDesc& desc) = 0;
     virtual std::unique_ptr<CommandBuffer> create_command_buffer() { return nullptr; }
     virtual std::unique_ptr<Pipeline> create_pipeline() { return nullptr; }
     virtual std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc&) { return nullptr; }
-
-    // Compatibility helper for headless/offscreen users during the surface migration.
-    std::unique_ptr<Swapchain> create_swapchain(std::uint32_t width, std::uint32_t height) {
-        SwapchainDesc desc;
-        desc.width = width;
-        desc.height = height;
-        return create_swapchain(desc);
-    }
-
     virtual void begin_frame() = 0;
     virtual void end_frame() = 0;
 };
 
 Backend default_backend() noexcept;
-
 std::unique_ptr<Device> create_null_device();
 std::unique_ptr<Device> create_sokol_device();
 std::unique_ptr<Device> create_vulkan_device(const DeviceDesc& desc);
@@ -98,7 +76,6 @@ std::unique_ptr<Device> create_d3d12_device(const DeviceDesc& desc);
 std::unique_ptr<Device> create_metal_device(const DeviceDesc& desc);
 std::unique_ptr<Device> create_opengl_device(const DeviceDesc& desc);
 std::unique_ptr<Device> create_webgpu_device(const DeviceDesc& desc);
-
 std::unique_ptr<Device> create_device(const DeviceDesc& desc = {});
 
 } // namespace Nova::RHI
