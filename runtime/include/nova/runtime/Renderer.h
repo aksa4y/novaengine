@@ -4,11 +4,10 @@
 #include <memory>
 
 #include <nova/rhi/RHI.h>
+#include <nova/runtime/Mesh.h>
 
 namespace Nova::Runtime {
 
-// Frame-oriented renderer facade. It owns only Runtime/RHI objects and remains
-// completely independent from Editor implementation details.
 class Renderer final {
 public:
     Renderer() = default;
@@ -23,6 +22,7 @@ public:
     bool begin_frame(const float clear_color[4] = nullptr);
     bool begin_render_pass();
     bool end_render_pass();
+    bool draw_mesh(const Mesh& mesh, RHI::Pipeline& pipeline);
     bool submit();
     bool end_frame();
 
