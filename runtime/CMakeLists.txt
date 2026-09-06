@@ -6,6 +6,7 @@
 
 add_library(nova-runtime STATIC
     src/Runtime.cpp
+    src/Renderer.cpp
 )
 add_library(Nova::Runtime ALIAS nova-runtime)
 
