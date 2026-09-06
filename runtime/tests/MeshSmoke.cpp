@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cassert>
+#include <cstdint>
 
 int main() {
     auto device = Nova::RHI::create_null_device();
@@ -21,7 +22,7 @@ int main() {
     constexpr std::array<std::uint32_t, 6> indices{{0, 1, 2, 2, 3, 0}};
 
     Nova::Runtime::Mesh mesh;
-    assert(mesh.upload(device ? *device : *Nova::RHI::create_null_device(),
+    assert(mesh.upload(*device,
                        vertices.data(), sizeof(vertices),
                        static_cast<std::uint32_t>(vertices.size()), sizeof(Vertex)));
     assert(mesh.is_ready());
