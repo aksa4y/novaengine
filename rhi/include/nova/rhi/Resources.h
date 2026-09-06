@@ -99,6 +99,12 @@ public:
     virtual void set_pipeline(Pipeline* pipeline) = 0;
     virtual void set_vertex_buffer(Buffer* buffer, std::uint32_t slot = 0) = 0;
     virtual void set_index_buffer(Buffer* buffer) { (void)buffer; }
+    virtual void set_viewport(float x, float y, float width, float height, float min_depth = 0.0f, float max_depth = 1.0f) {
+        (void)x; (void)y; (void)width; (void)height; (void)min_depth; (void)max_depth;
+    }
+    virtual void set_scissor(std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height) {
+        (void)x; (void)y; (void)width; (void)height;
+    }
     virtual void draw(std::uint32_t vertex_count, std::uint32_t first_vertex = 0) = 0;
     virtual void draw_indexed(std::uint32_t index_count, std::uint32_t first_index = 0,
                               std::int32_t vertex_offset = 0) {
