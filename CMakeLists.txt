@@ -8,6 +8,12 @@ add_subdirectory(rhi)
 add_subdirectory(runtime)
 add_subdirectory(editor)
 
+# Optional Windows game executable used as the first native application shell.
+option(NOVA_BUILD_WIN32_GAME "Build the Windows NovaGame application" OFF)
+if(NOVA_BUILD_WIN32_GAME AND WIN32)
+    add_subdirectory(samples/nova-win32)
+endif()
+
 # Nova public API smoke tests. These depend only on Nova Runtime/RHI.
 option(NOVA_BUILD_TESTS "Build Nova public API smoke tests" ON)
 if(NOVA_BUILD_TESTS)
@@ -21,7 +27,7 @@ if(NOVA_BUILD_TESTS)
 endif()
 
 # The complete upstream build graph is preserved verbatim under the explicit
-# legacy boundary while its implementation is being migrated into runtime/.
+# legacy boundary while the implementation is migrated into the Nova runtime tree.
 set(NOVA_LEGACY_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/legacy/CMakeLists.txt")
 if(EXISTS "${NOVA_LEGACY_CMAKE}")
     include("${NOVA_LEGACY_CMAKE}")
